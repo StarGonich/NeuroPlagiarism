@@ -1,0 +1,1 @@
+В `.venv/lib/python{Версия Python}/site-packages/antlr4/error/ErrorListener.py` настоятельно рекомендуется закомментировать строчку с `print("line " + str(line) + ":" + str(column) + " " + msg, file=sys.stderr)` и добавить `pass`, чтобы избежать многократных выводов ошибок при взаимодействии программы `3_ruscomments.py` с решениями, написанных на C++.
