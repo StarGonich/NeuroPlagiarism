@@ -133,4 +133,4 @@ if __name__ == "__main__":
                     print(team.name)
                     team_printered = True
                 sum_len = sum(len(comment) for comment in are_rus)
-                print(f"\t{sub.submission_code}{sub.language}. Суммарная длина: {sum_len}")
+                print(f"\t{sub.submission_code}{sub.language} Суммарная длина: {sum_len}")
