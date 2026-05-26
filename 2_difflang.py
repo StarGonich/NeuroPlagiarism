@@ -7,12 +7,6 @@ from PlagiarismDB import PlagiarismDB
 # python 2_difflang.py --platform Yandex --log log-911-1.xml --archive submits-911-1
 # python 2_difflang.py --platform Yandex --log log-911-2.xml --archive submits-911-2
 
-def get_language(language) -> str:
-    if language in ('.py', '.py3', '.pypy3', '.pypy3-64', '.pypy2'):
-        return 'python'
-    else:
-        return language
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Анализ разных языков программирования в решениях')
     parser.add_argument('--platform', '-p', type=str, required=True, choices=['Yandex', 'Codeforces'],
@@ -51,13 +45,13 @@ if __name__ == "__main__":
             sub_of_problem = [s for s in team_submissions if s.problem_code == problem_code]
             for j in range(len(sub_of_problem)):
                 if sub_of_problem[j].verdict != "CE":
-                    lang = get_language(sub_of_problem[0].language)
+                    lang = sub_of_problem[j].language
                     langs = set()
                     langs.add(lang)
                     break
             for i in range(j+1, len(sub_of_problem)):
-                lang2 = get_language(sub_of_problem[i].language)
-                if lang != lang2 and sub_of_problem[i].verdict != "CE":
+                lang2 = sub_of_problem[i].language
+                if lang2 not in langs and sub_of_problem[i].verdict != "CE":
                     langs.add(lang2)
                     
                     # print(f"\t{number}:{lang} | {sub_of_problem[i].submission_code}:{lang2}")
