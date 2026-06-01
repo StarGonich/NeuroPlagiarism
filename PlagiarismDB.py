@@ -371,7 +371,7 @@ class PlagiarismDB:
         return contest_id
 
 
-    def yandex_parse(self, xml_file, archive_path) -> None:
+    def yandex_parse(self, xml_file, archive_path) -> Optional[int]:
         import xml.etree.ElementTree as ET
         
         if not self.connect_db():

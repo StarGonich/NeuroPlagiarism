@@ -44,18 +44,17 @@ if __name__ == "__main__":
             sub_of_problem = [s for s in team_submissions if s.problem_code == problem_code]  # Не пуст
             lev_distance = Levenshtein.distance('', sub_of_problem[0].code, weights=(1, 0, 1))
             time_differnce = sub_of_problem[0].time - 0
-            # print(f"1) Пустая строка |{sub_of_problem[0].submission_code}.{sub_of_problem[0].language}: L={lev_distance}, T={time_differnce}")
             if lev_distance > 3 * time_differnce:
-                # print("Подозрительное решение")
-                print(f"\t{problem_code}-1) Пустая строка | {sub_of_problem[0].submission_code}.{sub_of_problem[0].language}: L={lev_distance}, T={time_differnce}")
+                if not team_printered:
+                    print(team.name)
+                    team_printered = True
+                print(f"\t{problem_code}-1) Пустая строка | {sub_of_problem[0].submission_code}{sub_of_problem[0].language}: L={lev_distance}, T={time_differnce}")
             for i in range(0, len(sub_of_problem)-1):
                 time_differnce = sub_of_problem[i+1].time - sub_of_problem[i].time
                 lev_distance_1 = Levenshtein.distance(sub_of_problem[i].code, sub_of_problem[i+1].code, weights=(1, 0, 1))
                 lev_distance_2 = Levenshtein.distance('', sub_of_problem[i].code, weights=(1, 0, 1))
                 lev_distance = min(lev_distance_1, lev_distance_2)
-                # print(f"{i+2}) {sub_of_problem[i].submission_code}{sub_of_problem[i].language} | {sub_of_problem[i+1].submission_code}.{sub_of_problem[i+1].language} L={lev_distance}, T={time_differnce}")
                 if lev_distance > 3 * time_differnce:
-                    # print("Подозрительное решение")
                     if not team_printered:
                         print(team.name)
                         team_printered = True

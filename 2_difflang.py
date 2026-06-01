@@ -35,7 +35,7 @@ if __name__ == "__main__":
     problems = db.get_problems_by_contest(contest_id)
 
     for team in teams:
-        team_printered = False
+        team_printed = False
         team_submissions = db.get_submissions_by_team(team.id)
 
         problems_for_this_team = set()
@@ -48,15 +48,18 @@ if __name__ == "__main__":
                     lang = sub_of_problem[j].language
                     langs = set()
                     langs.add(lang)
+                    lang_examples = {lang: sub_of_problem[j].submission_code}
                     break
             for i in range(j+1, len(sub_of_problem)):
                 lang2 = sub_of_problem[i].language
                 if lang2 not in langs and sub_of_problem[i].verdict != "CE":
                     langs.add(lang2)
-                    
-                    # print(f"\t{number}:{lang} | {sub_of_problem[i].submission_code}:{lang2}")
+                    lang_examples[lang2] = sub_of_problem[i].submission_code
             if len(langs) > 1:
-                if not team_printered:
+                if not team_printed:
                     print(team.name)
-                    team_printered = True
+                    team_printed = True
                 print(f"\tЗадача-{problem_code}. Используемые языки: {langs}")
+                if args.platform == "Codeforces":
+                    examples = ", ".join([f"{code}{lang}" for lang, code in lang_examples.items()])
+                    print(f"\tПримеры: {examples}")

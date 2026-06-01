@@ -9,6 +9,7 @@ from antlr4 import *
 from Lexers.JavaLexer import JavaLexer
 from Lexers.PythonLexer import PythonLexer
 from Lexers.CPP14Lexer import CPP14Lexer
+from Lexers.CSharpLexer import CSharpLexer
 
 # python 3_ruscomments.py --platform Codeforces --log log.txt --archive 602776
 # python 3_ruscomments.py --platform Yandex --log log-911-1.xml --archive submits-911-1
@@ -22,6 +23,12 @@ def is_cpp(language) -> bool:
 
 def is_java(language) -> bool:
     return True if language in ('.java') else False
+
+def is_csharp(language) -> bool:
+    return True if language in ('.cs') else False
+
+def is_pascal(language) -> bool:
+    return True if language in ('.pas') else False
 
 def python_extract_comments(submission) -> list:
     code = submission.code
@@ -85,6 +92,45 @@ def java_extract_comments(submission) -> list:
             comments.append(token.text)
     return comments
 
+def csharp_extract_comments(submission) -> list:
+    code = submission.code
+
+    input_stream = InputStream(code)
+    lexer = CSharpLexer(input_stream)
+    stream = CommonTokenStream(lexer)
+    stream.fill()
+
+    comments = []
+    for token in stream.tokens:
+        token_type = lexer.symbolicNames[token.type]
+        if token_type == 'Comment' and bool(re.search('[а-яА-ЯёЁ]', token.text)):
+            comments.append(token.text)
+    return comments
+
+def pascal_extract_comments(submission) -> list:
+    code = submission.code
+    comments = []
+    
+    line_pattern = r'//[^\n]*'
+    for match in re.finditer(line_pattern, code):
+        comment = match.group(0)
+        if re.search('[а-яА-ЯёЁ]', comment):
+            comments.append(comment)
+    
+    brace_pattern = r'\{[^{}]*\}'
+    for match in re.finditer(brace_pattern, code):
+        comment = match.group(0)
+        if re.search('[а-яА-ЯёЁ]', comment):
+            comments.append(comment)
+    
+    paren_pattern = r'\(\*[^*]*\*\)'
+    for match in re.finditer(paren_pattern, code):
+        comment = match.group(0)
+        if re.search('[а-яА-ЯёЁ]', comment):
+            comments.append(comment)
+    
+    return comments
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Поиск русских комментариев в коде')
     parser.add_argument('--platform', '-p', type=str, required=True, choices=['Yandex', 'Codeforces'],
@@ -113,6 +159,7 @@ if __name__ == "__main__":
     problems = db.get_problems_by_contest(contest_id)
 
     for team in teams:
+        team_lens = set()
         team_printered = False
         team_submissions = db.get_submissions_by_team(team.id)
 
@@ -120,11 +167,31 @@ if __name__ == "__main__":
         results = []
         for sub in team_submissions:
             if is_python(sub.language):
-                are_rus = python_extract_comments(sub)
+                try:
+                    are_rus = python_extract_comments(sub)
+                except Exception as e:
+                    print(f"{team.name}{sub.submission_code}{sub.language} [Ошибка Python лексера: {str(e)[:50]}]")
+                    continue
             elif is_cpp(sub.language):
-                are_rus = cpp_extract_comments(sub)
+                try:
+                    are_rus = cpp_extract_comments(sub)
+                except Exception as e:
+                    print(f"{team.name}{sub.submission_code}{sub.language} [Ошибка C++ лексера: {str(e)[:50]}]")
+                    continue
             elif is_java(sub.language):
-                are_rus = java_extract_comments(sub)
+                try:
+                    are_rus = java_extract_comments(sub)
+                except Exception as e:
+                    print(f"{team.name}{sub.submission_code}{sub.language} [Ошибка Java лексера: {str(e)[:50]}]")
+                    continue
+            elif is_csharp(sub.language):
+                try:
+                    are_rus = csharp_extract_comments(sub)
+                except Exception as e:
+                    print(f"{team.name}{sub.submission_code}{sub.language} [Ошибка C# лексера: {str(e)[:50]}]")
+                    continue
+            elif is_pascal(sub.language):
+                are_rus = pascal_extract_comments(sub)
             else:
                 continue  # иной язык
 
@@ -133,4 +200,6 @@ if __name__ == "__main__":
                     print(team.name)
                     team_printered = True
                 sum_len = sum(len(comment) for comment in are_rus)
-                print(f"\t{sub.submission_code}{sub.language} Суммарная длина: {sum_len}")
+                if sum_len not in team_lens:
+                    print(f"\t{sub.submission_code}{sub.language} Суммарная длина: {sum_len}")
+                    team_lens.add(sum_len)
