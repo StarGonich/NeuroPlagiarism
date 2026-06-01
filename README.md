@@ -2,7 +2,7 @@
 1) Создание виртуального окружения: `python -m venv .venv`
 2) Активация виртуального окружения
     - Linux: `source .venv/bin/activate`
-    - Windows: `.venv\Scripts\activate`
+    - Windows: `.venv\bin\activate`
 3) Установка библиотек: `pip install -r requirements.txt`
 4) В `.venv/lib/python{Версия Python}/site-packages/antlr4/error/ErrorListener.py` настоятельно рекомендуется закомментировать строчку с `print("line " + str(line) + ":" + str(column) + " " + msg, file=sys.stderr)` и добавить `pass`, чтобы избежать многократных выводов ошибок при взаимодействии программы `3_ruscomments.py` с решениями, написанных на C++.
 
