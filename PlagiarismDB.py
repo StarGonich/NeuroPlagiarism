@@ -794,7 +794,6 @@ class PlagiarismDB:
             return []
 
     def get_problem_codes_by_contest(self, contest_id: int) -> List[str]:
-        """УДАЛИТЬ НАХЕР"""
         try:
             cursor = self.conn.cursor()
             cursor.execute("""
@@ -814,23 +813,27 @@ class PlagiarismDB:
             cursor = self.conn.cursor()
             query = """
             SELECT 
-                r1.subgraphs_from as sub1,
-                r1.isomorphism_to as sub2,
-                r1.subgraph_size as size,
-                r1.result as result1,
-                r2.result as result2,
-                s1.code as code1,
-                s2.code as code2,
+                s1.submission_code AS sub1,
+                s2.submission_code AS sub2,
+                t1.team_name AS team1,
+                t2.team_name AS team2,
+                r1.subgraph_size AS size,
+                r1.result AS result1,
+                r2.result AS result2,
+                s1.code AS code1,
+                s2.code AS code2,
                 CASE 
                     WHEN r1.result < r2.result THEN r1.result 
                     ELSE r2.result 
-                END as final_result
+                END AS final_result
             FROM results r1
             JOIN results r2 ON r1.subgraphs_from = r2.isomorphism_to 
                         AND r1.isomorphism_to = r2.subgraphs_from 
                         AND r1.subgraph_size = r2.subgraph_size
             JOIN submissions s1 ON r1.subgraphs_from = s1.submission_id
             JOIN submissions s2 ON r1.isomorphism_to = s2.submission_id
+            JOIN teams t1 ON s1.team_id = t1.team_id
+            JOIN teams t2 ON s2.team_id = t2.team_id
             JOIN problems p ON s1.problem_id = p.problem_id
             WHERE p.contest_id = ?
                 AND p.problem_code = ?
