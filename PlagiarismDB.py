@@ -18,7 +18,7 @@ class Contest:
 @dataclass
 class Problem:
     id: int
-    code: str  # Буква задачи
+    code: str  # Буква/цифра задачи
     name: str
 
 
@@ -378,20 +378,16 @@ class PlagiarismDB:
             return
         self.create_tables()
         
-        # Парсим XML
         tree = ET.parse(xml_file)
         root = tree.getroot()
         
-        # Получаем информацию о контесте
         settings = root.find('settings')
         contest_name = settings.find('contestName').text if settings.find('contestName') is not None else "Unknown Contest"
         
-        # Длительность контеста в секундах
         duration_str = settings.find('duration').text if settings.find('duration') is not None else "0:00:00"
         duration_parts = duration_str.split(':')
         contlen = int(duration_parts[0]) * 3600 + int(duration_parts[1]) * 60 + int(duration_parts[2])
         
-        # Сохраняем контест
         contest = Contest(
             id=0,
             name=contest_name,
@@ -406,11 +402,10 @@ class PlagiarismDB:
             self.close_db()
             return
         
-        # Парсим задачи
         problems_section = root.find('problems')
-        problem_map = {}  # title -> (code, name)
-        problem_id_map = {}  # title -> problem_id
-        problem_code_map = {}  # title -> буква задачи (1->A, 2->B, ...)
+        problem_map = {}
+        problem_id_map = {}
+        problem_code_map = {}
         
         if problems_section is not None:
             for problem_elem in problems_section.findall('problem'):
@@ -431,10 +426,9 @@ class PlagiarismDB:
                         problem_map[title] = problem
                     self.problems.append(problem)
         
-        # Парсим пользователей (команды)
         users_section = root.find('users')
-        team_map = {}  # user_id -> team
-        team_id_map = {}  # user_id -> team_id в БД
+        team_map = {}
+        team_id_map = {}
         
         if users_section is not None:
             for user in users_section.findall('user'):
@@ -443,7 +437,6 @@ class PlagiarismDB:
                 displayed_name = user.get('displayedName')
                 participation_type = user.get('participationType')
                 
-                # Пропускаем скрытых пользователей (жюри, мониторы и т.д.)
                 if participation_type == "HIDDEN":
                     continue
                 
@@ -461,11 +454,7 @@ class PlagiarismDB:
                         team_map[user_id] = team
                     self.teams.append(team)
         
-        # Сканируем archive_path для поиска файлов решений
-        # Структура: archive_path/папка_участника/файл_решения
-        # Формат файла: {problem_number}-{submission_id}-{language_id}-{verdict}
-        # Сканируем archive_path для поиска файлов решений (рекурсивно)
-        submission_files = {}  # submission_id -> (filepath, problem_number, language_id, verdict)
+        submission_files = {}
 
         if os.path.exists(archive_path):
             for participant_dir in os.listdir(archive_path):
@@ -478,7 +467,6 @@ class PlagiarismDB:
                     if not os.path.isfile(filepath):
                         continue
                     
-                    # Парсим имя файла: 1-149105975-No-compiler-WrongAnswer
                     parts = filename.split('-')
                     if len(parts) >= 4:
                         problem_number = parts[0]
@@ -494,7 +482,6 @@ class PlagiarismDB:
                             'participant_dir': participant_dir
                         }
         
-        # Парсим посылки
         events_section = root.find('events')
         submissions_count = 0
         
@@ -508,28 +495,22 @@ class PlagiarismDB:
                 verdict = submit_elem.get('verdict')
                 score = submit_elem.get('score')
                 
-                # Пропускаем, если нет нужных данных
                 if not submission_id or not problem_title or not user_id:
                     continue
                 
-                # Пропускаем скрытых пользователей
                 if user_id not in team_id_map:
                     continue
                 
-                # Получаем ID задачи и команды
                 problem_id = problem_id_map.get(problem_title)
                 team_id = team_id_map.get(user_id)
                 
                 if not problem_id or not team_id:
                     continue
                 
-                # Получаем код задачи (букву)
                 problem_code = problem_code_map.get(problem_title, problem_title)
                 
-                # Определяем язык
                 lang = self._get_language_extension(language_id) if language_id else ".txt"
                 
-                # Пытаемся найти файл с кодом
                 code = ""
                 submission_info = submission_files.get(submission_id)
                 if submission_info:
@@ -539,10 +520,8 @@ class PlagiarismDB:
                     except Exception as e:
                         print(f"Ошибка чтения файла {submission_info['filepath']}: {e}")
                 
-                # Определяем попытку - считаем количество посылок по этой задаче от этого пользователя
                 attempt = self._get_attempt_count(events_section, user_id, problem_title, submission_id)
                 
-                # Определяем финальный балл
                 if score is not None:
                     try:
                         final_score = float(score)
@@ -551,7 +530,6 @@ class PlagiarismDB:
                 else:
                     final_score = 0.0
                 
-                # Создаём посылку
                 submission = Submission(
                     id=0,
                     language=lang,
@@ -575,18 +553,6 @@ class PlagiarismDB:
         return contest_id
 
     def _get_attempt_count(self, events_section, user_id: str, problem_title: str, current_submission_id: str) -> int:
-        """
-        Подсчитывает номер попытки для данной посылки
-        
-        Args:
-            events_section: секция events из XML
-            user_id: ID пользователя
-            problem_title: название задачи
-            current_submission_id: ID текущей посылки
-            
-        Returns:
-            номер попытки (начиная с 1)
-        """
         attempt = 1
         for submit in events_section.findall('submit'):
             sub_id = submit.get('id')
@@ -605,15 +571,6 @@ class PlagiarismDB:
         return attempt
 
     def _get_language_extension(self, language_id: str) -> str:
-        """
-        Определяет расширение файла по идентификатору языка
-        
-        Args:
-            language_id: идентификатор языка из Яндекс.Контеста
-            
-        Returns:
-            расширение файла (с точкой)
-        """
         language_map = {
             'haskell': '.hs',
             'data-analysis-handbook': '.py',
@@ -888,20 +845,3 @@ class PlagiarismDB:
         except Error as e:
             print(f"Ошибка получения финальных результатов: {e}")
             return []
-
-
-if __name__ == "__main__":
-    db = PlagiarismDB('plagiarism.db')
-    # db.codeforces_parse('../log.txt', '../602776')
-    # print(db.problems)
-    # print(db.get_problems_by_contest(1))
-    # print(db.get_submissions_by_problem(11))
-    # print(db.get_submissions_by_team(11))
-    # print(db.get_final_results_by_filters(1, 'B', 4))
-    # print(db.get_final_results_by_filters(1, 'C', 4))
-    # print(db.teams)
-    # print(db.submissions)
-
-    db.yandex_parse('../log-911-2.xml', '../submits911')
-
-    db.close_db()
